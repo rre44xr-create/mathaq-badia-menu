@@ -2,6 +2,7 @@ import { asc, count } from "drizzle-orm";
 import { getRestaurantAdmin } from "../../admin-auth";
 import { getD1, getDb } from "../../../db";
 import { menuItems } from "../../../db/schema";
+import { normaliseMenuImage } from "../../../lib/menu-image";
 
 async function ensureMenuTable() {
   const d1 = await getD1();
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
       price: Number(body.price),
       calories: Number(body.calories),
       featured: Number(body.featured) ? 1 : 0,
-      image: String(body.image || "lamb"),
+      image: normaliseMenuImage(body.image, "lamb"),
     }).returning();
     return Response.json({ item }, { status: 201 });
   } catch (error) {
