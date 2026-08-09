@@ -9,6 +9,20 @@ export type MenuItem = {
   image: string;
 };
 
+const categoryImages: Record<string, string> = {
+  lamb: "/food/lamb.jpg",
+  chicken: "/food/chicken.jpg",
+  breakfast: "/food/breakfast.jpg",
+  drink: "/food/breakfast.jpg",
+};
+
+export function resolveMenuImage(item: Pick<MenuItem, "name" | "image">) {
+  if (item.image?.startsWith("data:image/") || item.image?.startsWith("/")) {
+    return item.image;
+  }
+  return categoryImages[item.image] || categoryImages.lamb;
+}
+
 export const categories = ["الكل", "اللحم", "الدجاج", "الفطور", "المشروبات الساخنة"];
 
 export const previewItems: MenuItem[] = [
