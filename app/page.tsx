@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { categories, fetchMenu, type MenuItem, previewItems } from "../lib/menu";
+import { categories, fetchMenu, type MenuItem, previewItems, resolveMenuImage } from "../lib/menu";
 
 function SearchIcon() {
   return (
@@ -130,6 +130,15 @@ export default function CustomerMenu() {
             <div className="mobile-items">
               {visibleItems.map((item) => (
                 <article className="mobile-food-card" key={item.id}>
+                  <figure className="mobile-food-photo">
+                    <img
+                      src={resolveMenuImage(item)}
+                      alt={`صورة ${item.name}`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <figcaption>{item.category}</figcaption>
+                  </figure>
                   <div className="mobile-food-copy">
                     <div className="mobile-food-head">
                       <div>
