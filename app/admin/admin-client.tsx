@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { categories, fetchMenu, MenuItem, previewItems } from "../../lib/menu";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { categories, fetchMenu, MenuItem, previewItems, resolveMenuImage } from "../../lib/menu";
 
 const blankItem = {
   name: "",
@@ -10,15 +11,32 @@ const blankItem = {
   price: "",
   calories: "",
   featured: false,
-  image: "lamb",
+  image: "",
 };
 
-const foodImage: Record<string, string> = {
-  lamb: "/food/lamb.jpg",
-  chicken: "/food/chicken.jpg",
-  breakfast: "/food/breakfast.jpg",
-  drink: "/food/breakfast.jpg",
-};
+function categoryImage(category: string) {
+  if (category === "الدجاج") return "chicken";
+  if (category === "الفطور") return "breakfast";
+  if (category === "المشروبات الساخنة") return "drink";
+  return "lamb";
+}
+
+async function compressImage(file: File) {
+  if (!file.type.startsWith("image/")) throw new Error("اختر ملف صورة فقط");
+  if (file.size > 8 * 1024 * 1024) throw new Error("حجم الصورة يجب ألا يتجاوز 8 ميجابايت");
+
+  const bitmap = await createImageBitmap(file);
+  const maxDimension = 1200;
+  const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("تعذر تجهيز الصورة");
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return canvas.toDataURL("image/webp", 0.78);
+}
 
 type AdminClientProps = {
   adminName: string;
@@ -32,6 +50,8 @@ export default function AdminClient({ adminName, signOutPath }: AdminClientProps
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(blankItem);
   const [notice, setNotice] = useState("");
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageInputKey, setImageInputKey] = useState(0);
 
   async function loadItems() {
     try {
@@ -41,7 +61,9 @@ export default function AdminClient({ adminName, signOutPath }: AdminClientProps
     }
   }
 
-  useEffect(() => { loadItems(); }, []);
+  useEffect(() => {
+    fetchMenu().then(setItems).catch(() => setItems(previewItems));
+  }, []);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -55,6 +77,7 @@ export default function AdminClient({ adminName, signOutPath }: AdminClientProps
   function openAdd() {
     setEditingId(null);
     setForm(blankItem);
+    setImageInputKey((value) => value + 1);
     setFormOpen(true);
   }
 
@@ -70,6 +93,23 @@ export default function AdminClient({ adminName, signOutPath }: AdminClientProps
       image: item.image,
     });
     setFormOpen(true);
+    setImageInputKey((value) => value + 1);
+  }
+
+  async function selectImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setImageBusy(true);
+    try {
+      const image = await compressImage(file);
+      if (image.length > 1_500_000) throw new Error("الصورة كبيرة بعد الضغط، جرّب صورة أصغر");
+      setForm((current) => ({ ...current, image }));
+      setNotice("تم تجهيز الصورة، احفظ الصنف لتثبيتها");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "تعذر قراءة الصورة");
+    } finally {
+      setImageBusy(false);
+    }
   }
 
   async function saveItem(event: FormEvent) {
@@ -79,6 +119,7 @@ export default function AdminClient({ adminName, signOutPath }: AdminClientProps
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        image: form.image || categoryImage(form.category),
         price: Number(form.price),
         calories: Number(form.calories),
         featured: form.featured ? 1 : 0,
@@ -112,7 +153,7 @@ export default function AdminClient({ adminName, signOutPath }: AdminClientProps
         />
         <nav>
           <a className="active" href="/admin"><span>▦</span> إدارة المنيو</a>
-          <a href="/"><span>↗</span> عرض صفحة العميل</a>
+          <Link href="/"><span>↗</span> عرض صفحة العميل</Link>
         </nav>
         <div className="sidebar-note">
           <b>لوحة المطعم</b>
@@ -157,7 +198,7 @@ export default function AdminClient({ adminName, signOutPath }: AdminClientProps
             {filtered.map((item) => (
               <article className="admin-row" key={item.id}>
                 <div className="admin-dish">
-                  <img src={foodImage[item.image] || foodImage.lamb} alt="" />
+                  <img src={resolveMenuImage(item)} alt={`صورة ${item.name}`} loading="lazy" />
                   <span><b>{item.name}</b><small>{item.description}</small></span>
                 </div>
                 <span className="admin-category">{item.category}</span>
@@ -190,9 +231,46 @@ export default function AdminClient({ adminName, signOutPath }: AdminClientProps
             <label className="form-wide">وصف الطبق<textarea required value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="اكتب وصفًا واضحًا وشهيًا للطبق" /></label>
             <label>السعر (ر.س)<input required min="0" step=".5" type="number" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
             <label>السعرات الحرارية<input required min="0" type="number" value={form.calories} onChange={(event) => setForm({ ...form, calories: event.target.value })} /></label>
-            <label>صورة الصنف<select value={form.image} onChange={(event) => setForm({ ...form, image: event.target.value })}><option value="lamb">لحم</option><option value="chicken">دجاج</option><option value="breakfast">فطور</option><option value="drink">مشروبات</option></select></label>
+            <div className="form-image form-wide">
+              <div className="form-image-preview">
+                {form.image ? (
+                  <img
+                    src={resolveMenuImage({ name: form.name, image: form.image })}
+                    alt="معاينة صورة الصنف"
+                  />
+                ) : (
+                  <span aria-hidden="true">▧</span>
+                )}
+              </div>
+              <div className="form-image-copy">
+                <b>{editingId ? "تغيير صورة الصنف" : "إضافة صورة للصنف"}</b>
+                <p>اختر صورة واضحة من الجوال أو الكمبيوتر، وسيتم ضغطها تلقائيًا لتفتح بسرعة في المنيو.</p>
+                <label className={imageBusy ? "image-upload busy" : "image-upload"}>
+                  <input
+                    key={imageInputKey}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={selectImage}
+                    disabled={imageBusy}
+                  />
+                  <span>{imageBusy ? "جاري تجهيز الصورة..." : form.image ? "اختيار صورة أخرى" : "اختيار صورة"}</span>
+                </label>
+                {form.image && (
+                  <button
+                    type="button"
+                    className="image-remove"
+                    onClick={() => {
+                      setForm({ ...form, image: "" });
+                      setImageInputKey((value) => value + 1);
+                    }}
+                  >
+                    إزالة الصورة المختارة
+                  </button>
+                )}
+              </div>
+            </div>
             <label className="form-check"><input type="checkbox" checked={form.featured} onChange={(event) => setForm({ ...form, featured: event.target.checked })} /> إظهاره ضمن الأكثر طلبًا</label>
-            <footer className="form-wide"><button type="button" className="cancel" onClick={() => setFormOpen(false)}>إلغاء</button><button type="submit" className="save">{editingId ? "حفظ التعديلات" : "إضافة إلى المنيو"}</button></footer>
+            <footer className="form-wide"><button type="button" className="cancel" onClick={() => setFormOpen(false)}>إلغاء</button><button type="submit" className="save" disabled={imageBusy}>{editingId ? "حفظ التعديلات" : "إضافة إلى المنيو"}</button></footer>
           </form>
         </div>
       )}
