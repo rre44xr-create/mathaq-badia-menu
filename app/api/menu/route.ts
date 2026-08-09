@@ -50,7 +50,13 @@ export async function GET() {
     await ensureMenuTable();
     const db = await getDb();
     const [summary] = await db.select({ total: count() }).from(menuItems);
-    if (!summary.total) await db.insert(menuItems).values(seed);
+    if (!summary.total) {
+      // Cloudflare D1 limits the number of bound parameters per query.
+      // Seed in small groups so first-run setup succeeds reliably.
+      for (let index = 0; index < seed.length; index += 6) {
+        await db.insert(menuItems).values(seed.slice(index, index + 6));
+      }
+    }
     const rows = await db.select().from(menuItems).orderBy(asc(menuItems.id));
     return Response.json({ items: rows });
   } catch (error) {
