@@ -236,6 +236,37 @@ img { display: block; max-width: 100%; }
 .menu-form footer button { min-height: 46px; padding: 0 20px; font-weight: 800; }
 .menu-form .cancel { border: 1px solid var(--line); background: transparent; color: var(--brown); }
 .menu-form .save { border: 0; background: var(--clay); color: white; }
+.menu-form .save:disabled { cursor: wait; opacity: .62; }
+
+.form-image {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  border: 1px dashed rgba(45, 63, 131, .34);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .64);
+}
+.form-image-preview {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #e9e2d6;
+  color: var(--clay);
+  font-size: 32px;
+}
+.form-image-preview img { width: 100%; height: 100%; object-fit: cover; }
+.form-image-copy { min-width: 0; display: flex; flex-direction: column; align-items: start; gap: 7px; }
+.form-image-copy > b { font-size: 12px; }
+.form-image-copy > p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.image-upload { min-height: 40px; padding: 0 14px; display: inline-flex!important; align-items: center; justify-content: center; border-radius: 5px; background: var(--brown); color: white; cursor: pointer; }
+.image-upload input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.image-upload span { font-size: 10px; font-weight: 800; }
+.image-upload.busy { cursor: wait; opacity: .65; }
+.image-remove { padding: 2px 0; border: 0; border-bottom: 1px solid currentColor; background: transparent; color: #a44235; font-size: 9px; }
 
 .admin-auth-page { min-height: 100vh; padding: 24px; display: grid; place-items: center; background: #f0ebe3; color: var(--brown); }
 .admin-auth-card { width: min(440px, 100%); padding: 38px 32px; display: flex; flex-direction: column; align-items: center; border: 1px solid var(--line); background: var(--paper); text-align: center; box-shadow: 0 24px 70px rgba(14,20,54,.12); }
@@ -305,6 +336,8 @@ img { display: block; max-width: 100%; }
   .menu-form { grid-template-columns: 1fr; padding: 22px; }
   .menu-form header, .form-wide { grid-column: auto; }
   .menu-form footer { flex-direction: column-reverse; }
+  .form-image { grid-template-columns: 1fr; }
+  .form-image-preview { width: 100%; max-height: 220px; }
   .notice { left: 16px; right: 16px; bottom: 82px; }
 }
 
@@ -1616,6 +1649,47 @@ img { display: block; max-width: 100%; }
   border-radius: 18px;
   background: linear-gradient(145deg, rgba(22, 38, 90, .84), rgba(8, 17, 45, .94));
   box-shadow: 0 12px 34px rgba(1, 5, 17, .2), inset 0 0 22px rgba(212, 175, 116, .025);
+}
+
+.mobile-food-photo {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  margin: 0;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(212, 175, 116, .42);
+  background: #0b1639;
+}
+
+.mobile-food-photo::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 38%;
+  background: linear-gradient(transparent, rgba(5, 11, 30, .58));
+  pointer-events: none;
+}
+
+.mobile-food-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .35s ease;
+}
+
+.mobile-food-card:active .mobile-food-photo img { transform: scale(1.025); }
+
+.mobile-food-photo figcaption {
+  position: absolute;
+  z-index: 1;
+  right: 12px;
+  bottom: 10px;
+  padding: 5px 8px;
+  border: 1px solid rgba(212, 175, 116, .5);
+  border-radius: 999px;
+  background: rgba(8, 17, 45, .76);
+  color: var(--mobile-ivory);
+  backdrop-filter: blur(6px);
+  font-size: 8px;
 }
 
 .mobile-food-copy {
