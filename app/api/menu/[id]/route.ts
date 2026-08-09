@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getRestaurantAdmin } from "../../../admin-auth";
 import { getDb } from "../../../../db";
 import { menuItems } from "../../../../db/schema";
+import { normaliseMenuImage } from "../../../../lib/menu-image";
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -18,11 +19,12 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       price: Number(body.price),
       calories: Number(body.calories),
       featured: Number(body.featured) ? 1 : 0,
-      image: String(body.image || "lamb"),
+      image: normaliseMenuImage(body.image, "lamb"),
     }).where(eq(menuItems.id, Number(id))).returning();
     return Response.json({ item });
-  } catch {
-    return Response.json({ error: "تعذر تحديث الصنف" }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "تعذر تحديث الصنف";
+    return Response.json({ error: message }, { status: 500 });
   }
 }
 
